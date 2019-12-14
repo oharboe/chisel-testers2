@@ -4,6 +4,10 @@
 //
 // This integration tests demonstrates how we can use host floating point and
 // dependency injection to mock hard floating point units
+//
+// This is a brute-force DCT, so it uses a ridiculous 4096. There is
+// extensive litterature on more efficient DFT(Discrete Fourier Transform),
+// e.g. Cho and Lee's proposed algorithm uses 96 multiplications and 466 additions.
 
 package chiseltest.integration
 
@@ -67,12 +71,15 @@ class DctTest extends FlatSpec with ChiselScalatestTester {
             mult.b := b
             mult.out
         }
-    
+
+
           def toHardDouble(value : Double) : HardDouble ={
               val hardDouble = Wire(new HardDouble)
               hardDouble.value :=(BigInt(java.lang.Double.doubleToRawLongBits(value)) & ((BigInt(1) << 64) - 1)).U
               hardDouble
           }
+
+          printf("First value %x\n", io.dct(0)(0).value)
 
 
         io.dct := (0 until m).map{i => 
@@ -98,7 +105,7 @@ class DctTest extends FlatSpec with ChiselScalatestTester {
     }
 
   it should "do a DCT" in {
-    test(new DCT(4, 4)).withAnnotations(Seq(
+    test(new DCT(8, 8)).withAnnotations(Seq(
         
     VerilatorBackendAnnotation, 
     
@@ -117,23 +124,27 @@ class DctTest extends FlatSpec with ChiselScalatestTester {
               (BigInt(java.lang.Double.doubleToRawLongBits(value)) & ((BigInt(1) << 64) - 1)).U
           }
 
-          
+
           dut.io.matrix.foreach{_.foreach{_.value.poke(toHardDouble(255.0))}}
           dut.clock.step(1)
 
-              dut.io.add.foreach{add => 
-                add.out.value.poke( toHardDouble(binaryOp(add).reduce((a, b) => a + b)))           
-                }
-                dut.io.multiply.foreach{mult => 
-                    mult.out.value.poke( toHardDouble(binaryOp(mult).reduce((a, b) => a * b)))
-                }
+          for (_ <- 0 until 3) 
+          {
+          dut.io.add.foreach{add => 
+            add.out.value.poke( toHardDouble(binaryOp(add).reduce((a, b) => a + b)))           
+            }
+            dut.io.multiply.foreach{mult => 
+                mult.out.value.poke( toHardDouble(binaryOp(mult).reduce((a, b) => a * b)))
+            }
 
             dut.clock.step(1)
 
+          }
 
             dut.io.dct.foreach{row =>
                 println(row.map(toDouble(_).toString()).mkString(", "))           
             }
+
             fork {
 
           }.fork {

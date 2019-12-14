@@ -97,3 +97,6 @@ scalacOptions ++= scalacOptionsVersion(scalaVersion.value)
 scalacOptions ++= Seq("-deprecation", "-feature", "-language:reflectiveCalls")
 
 javacOptions ++= javacOptionsVersion(scalaVersion.value)
+
+// faster tests by using ccache for Verilator
+envVars in Test := Map("OBJCACHE" -> "ccache", "MAKEFLAGS" -> "VM_PARALLEL_BUILDS=1")
