@@ -11,6 +11,14 @@ import org.scalatest._
 
 import chisel3._
 import chiseltest._
+import chiseltest.internal.WriteVcdAnnotation
+import chiseltest.internal.{VerilatorBackendAnnotation}
+
+import chiseltest.experimental.TestOptionBuilder._
+import chiseltest.experimental.UncheckedClockPoke._
+import chiseltest.internal.{TreadleBackendAnnotation, VerilatorBackendAnnotation}
+import chisel3.util._
+import org.scalatest._
 
 class DctTest extends FlatSpec with ChiselScalatestTester {
     behavior of "DCT integration test"
@@ -90,7 +98,11 @@ class DctTest extends FlatSpec with ChiselScalatestTester {
     }
 
   it should "do a DCT" in {
-    test(new DCT(8, 8)) { dut =>
+    test(new DCT(4, 4)).withAnnotations(Seq(
+        
+    VerilatorBackendAnnotation, 
+    
+    WriteVcdAnnotation)) { dut =>
       
         var done = false
 
@@ -104,9 +116,10 @@ class DctTest extends FlatSpec with ChiselScalatestTester {
           def toHardDouble(value : Double) : UInt ={
               (BigInt(java.lang.Double.doubleToRawLongBits(value)) & ((BigInt(1) << 64) - 1)).U
           }
-            fork {
-            while (!done) {
-              dut.clock.step(1)
+
+          
+          dut.io.matrix.foreach{_.foreach{_.value.poke(toHardDouble(255.0))}}
+          dut.clock.step(1)
 
               dut.io.add.foreach{add => 
                 add.out.value.poke( toHardDouble(binaryOp(add).reduce((a, b) => a + b)))           
@@ -114,17 +127,16 @@ class DctTest extends FlatSpec with ChiselScalatestTester {
                 dut.io.multiply.foreach{mult => 
                     mult.out.value.poke( toHardDouble(binaryOp(mult).reduce((a, b) => a * b)))
                 }
-            }
-          }.fork {
 
-            dut.io.matrix.foreach{_.foreach{_.value.poke(toHardDouble(255.0))}}
             dut.clock.step(1)
 
 
             dut.io.dct.foreach{row =>
                 println(row.map(toDouble(_).toString()).mkString(", "))           
             }
+            fork {
 
+          }.fork {
             done = true
           }.join
 
