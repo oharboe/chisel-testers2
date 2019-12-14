@@ -5,8 +5,9 @@
 // This integration tests demonstrates how we can use host floating point and
 // dependency injection to mock hard floating point units
 //
-// This is a brute-force DCT, so it uses a ridiculous 4096. There is
-// extensive litterature on more efficient DFT(Discrete Fourier Transform),
+// This is a brute-force DCT, so it uses a ridiculous 4096 multiplications.
+//
+// There is extensive litterature on more efficient DFT(Discrete Fourier Transform),
 // e.g. Cho and Lee's proposed algorithm uses 96 multiplications and 466 additions.
 
 package chiseltest.integration
